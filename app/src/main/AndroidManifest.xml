@@ -20,9 +20,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".BrokerService"></service>
+        <service android:name=".services.BrokerService"></service>
         <receiver
-            android:name=".NetworkChangeReceiver"
+            android:name=".broadcastRecivers.NetworkChangeReceiver"
             android:label="NetworkChangeReceiver" >
             <intent-filter>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />

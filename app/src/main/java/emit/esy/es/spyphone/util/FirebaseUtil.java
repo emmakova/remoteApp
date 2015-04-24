@@ -1,10 +1,6 @@
-package emit.esy.es.spyphone;
+package emit.esy.es.spyphone.util;
 
-import android.app.Service;
 import android.content.Context;
-import android.content.Intent;
-import android.os.IBinder;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.firebase.client.AuthData;
@@ -16,38 +12,50 @@ import com.firebase.client.FirebaseError;
 import java.util.HashMap;
 import java.util.Map;
 
+import emit.esy.es.spyphone.R;
+
 /**
- * Created by Emil Makovac on 21/04/2015.
+ * Created by Emil Makovac on 24/04/2015.
  */
-public class BrokerService extends Service {
+public class FirebaseUtil {
 
-    private final String LOG_TAG = "BrokerService";
-    String IMEI, username, password;
+    private static final String LOG_TAG = "FirebaseUtil";
+    String username, password;
     volatile String id;
-    Firebase ref, userRef, connRef;
+    Firebase ref, userRef;
+    Context context;
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        Log.d(LOG_TAG, "onCreate");
-        Firebase.setAndroidContext(this);
-        password = getString(R.string.password);
-        username = createUsername();
-
-        //Authenticate user to firebase
-        authenticateUser();
+    public FirebaseUtil(Context context, String username, String password){
+        this.context = context;
+        this.username = username;
+        this.password = password;
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(LOG_TAG, "onStartCommand");
+    public void authenticateUser() {
+        ref = new Firebase(context.getString(R.string.domain));
+        ref.authWithPassword(username, password, new Firebase.AuthResultHandler() {
 
-        setUpChildRef();
+            @Override
+            public void onAuthenticated(AuthData authData) {
+                id = authData.getUid();
+                Log.d(LOG_TAG, "Authenticate user ID- " + id);
+                setUpChildRef();
+            }
 
-        return START_STICKY;
+            @Override
+            public void onAuthenticationError(FirebaseError firebaseError) {
+                //If error == no such user, create user
+                switch (firebaseError.getCode()) {
+                    case FirebaseError.USER_DOES_NOT_EXIST:
+                        createUser();
+                        break;
+                }
+            }
+        });
+
     }
 
-    private void setUpChildRef() {
+    public void setUpChildRef() {
         Log.d(LOG_TAG, "setUpChildRef");
         if(id != null){
 
@@ -137,42 +145,6 @@ public class BrokerService extends Service {
         dataSnapshot.getRef().setValue("null");
     }
 
-    private String createUsername() {
-        TelephonyManager telephonyManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
-        IMEI = telephonyManager.getDeviceId();
-        return buildUserName(IMEI);
-    }
-
-    private String buildUserName(String imei) {
-        return "device" + imei + "@spyphone.emit";
-    }
-
-    private void authenticateUser() {
-        ref = new Firebase(getString(R.string.domain));
-        ref.authWithPassword(username, password, new Firebase.AuthResultHandler() {
-
-            @Override
-            public void onAuthenticated(AuthData authData) {
-                id = authData.getUid();
-                Log.d(LOG_TAG, "Authenticate user ID- " + id);
-                setUpChildRef();
-            }
-
-            @Override
-            public void onAuthenticationError(FirebaseError firebaseError) {
-                //If error == no such user, create user
-                switch (firebaseError.getCode()) {
-                    case FirebaseError.USER_DOES_NOT_EXIST:
-                        createUser();
-                        break;
-                }
-            }
-        });
-
-    }
-
-
-
     private void createUser() {
         ref.createUser(username, password, new Firebase.ValueResultHandler<Map<String, Object>>() {
 
@@ -202,26 +174,11 @@ public class BrokerService extends Service {
         Map<String, Object> connOnline = new HashMap<String, Object>();
         connOnline.put("isOnline", false);
         if(b){
-           userRef.updateChildren(user);
-           userRef.onDisconnect().updateChildren(connOnline);
+            userRef.updateChildren(user);
+            userRef.onDisconnect().updateChildren(connOnline);
         } else {
-           userRef.setValue(user);
-           userRef.onDisconnect().updateChildren(connOnline);
+            userRef.setValue(user);
+            userRef.onDisconnect().updateChildren(connOnline);
         }
     }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        Log.d(LOG_TAG, "onBind");
-        return null;
-    }
-
-
-
-    @Override
-    public void onDestroy() {
-        Log.d(LOG_TAG, "onDestroy");
-        super.onDestroy();
-    }
-
 }
