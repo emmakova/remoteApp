@@ -1,4 +1,4 @@
-package emit.esy.es.spyphone.broadcastRecivers;
+package emit.esy.es.spyphone.broadcastReceivers;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -13,7 +13,7 @@ import emit.esy.es.spyphone.util.NetworkUtil;
  */
 public class NetworkChangeReceiver extends BroadcastReceiver {
 
-    String LOG_TAG = "NetworkChangeReceiver";
+    private static final String LOG_TAG = "NetworkChangeReceiver";
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -31,6 +31,5 @@ public class NetworkChangeReceiver extends BroadcastReceiver {
             context.stopService(new Intent(context, BrokerService.class));
 
         }
-
     }
 }

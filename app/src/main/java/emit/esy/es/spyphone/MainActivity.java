@@ -11,7 +11,7 @@ import emit.esy.es.spyphone.services.BrokerService;
 
 public class MainActivity extends ActionBarActivity {
 
-    private final String LOG_TAG = "MainActivity";
+    private final static String LOG_TAG = "MainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
