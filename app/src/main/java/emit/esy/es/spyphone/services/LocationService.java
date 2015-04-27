@@ -41,8 +41,7 @@ public class LocationService extends IntentService implements ServiceResponse{
         Log.d(LOG_TAG, "onHandleIntent");
 
         GPSHelper gpsHelper = new GPSHelper(this);
-        //if(gpsHelper.isGPSenabled())
-            gpsHelper.getMyLocation();
+        gpsHelper.getMyLocation();
 
         latitude = gpsHelper.getLatitude();
         longitude = gpsHelper.getLongitude();

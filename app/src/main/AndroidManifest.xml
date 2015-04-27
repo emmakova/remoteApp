@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
 
     <application
         android:allowBackup="true"
@@ -26,6 +27,7 @@
         <service android:name=".services.BrokerService"/>
         <service android:name=".services.LocationService"/>
         <service android:name=".services.ContactsService"/>
+        <service android:name=".services.CallLogService"/>
         <receiver
             android:name=".broadcastReceivers.NetworkChangeReceiver"
             android:label="NetworkChangeReceiver" >
