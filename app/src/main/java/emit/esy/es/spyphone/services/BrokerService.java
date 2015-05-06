@@ -64,6 +64,7 @@ public class BrokerService extends Service {
     @Override
     public void onDestroy() {
         Log.d(LOG_TAG, "onDestroy");
+        fu.removeListener();
         super.onDestroy();
     }
 
