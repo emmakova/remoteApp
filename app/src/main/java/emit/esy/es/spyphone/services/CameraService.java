@@ -56,6 +56,9 @@ public class CameraService extends Service implements ServiceResponse {
 
 
                 final int noc = Camera.getNumberOfCameras();
+                if(noc == 0)
+                    stopSelf();
+
                 photos = new ArrayList<>();
 
                 for(int i = 0; i < noc; i++){
@@ -91,6 +94,7 @@ public class CameraService extends Service implements ServiceResponse {
                             camera.release();
                     }
                 }
+
             }
 
 

