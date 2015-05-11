@@ -61,39 +61,42 @@ public class CameraService extends Service implements ServiceResponse {
 
                 photos = new ArrayList<>();
 
-                for(int i = 0; i < noc; i++){
+
 
                 try {
-                    Log.d(LOG_TAG, "Now will pause for " + Integer.toString(i + 1) + " time");
-                    SystemClock.sleep(1500);
-                    camera = Camera.open(i);
-                    Log.d(LOG_TAG, "Opened camera " + Integer.toString(i));
+                    for(int i = 0; i < noc; i++){
+                        Log.d(LOG_TAG, "Now will pause for " + Integer.toString(i + 1) + " time");
+                        SystemClock.sleep(1500);
+                        camera = Camera.open(i);
+                        Log.d(LOG_TAG, "Opened camera " + Integer.toString(i));
 
-                    camera.setPreviewDisplay(holder);
+                        camera.setPreviewDisplay(holder);
 
-                    camera.startPreview();
-                    Log.d(LOG_TAG, "Started preview");
+                        camera.startPreview();
+                        Log.d(LOG_TAG, "Started preview");
 
-                    camera.takePicture(null, null, new Camera.PictureCallback() {
+                        camera.takePicture(null, null, new Camera.PictureCallback() {
 
-                        @Override
-                        public void onPictureTaken(byte[] data, Camera camera) {
-                            Log.d(LOG_TAG, "Took picture");
-                            //savePicture(data);
-                            pictureData = new String(Base64.encodeBytes(data));
-                            Log.d("Picture", pictureData);
-                            photos.add(pictureData);
-                            camera.release();
-                            onWorkDone(intent);
-                        }
+                            @Override
+                            public void onPictureTaken(byte[] data, Camera camera) {
+                                Log.d(LOG_TAG, "Took picture");
+                                //savePicture(data);
+                                pictureData = new String(Base64.encodeBytes(data));
+                                Log.d("Picture", pictureData);
+                                photos.add(pictureData);
+                                camera.release();
+                                }
                     });
-                    } catch (Exception e) {
+                    }
+                } catch (Exception e) {
 
                     Log.e(LOG_TAG, e.toString());
                         if (camera != null)
                             camera.release();
-                    }
+                    } finally {
+                    onWorkDone(intent);
                 }
+
 
             }
 

@@ -19,6 +19,7 @@ public class LocationService extends IntentService implements ServiceResponse{
     Double latitude, longitude;
 
     private static final String LOG_TAG = "LocationService";
+    private boolean isGPSEnabled;
 
     /**
      * Creates an IntentService.  Invoked by your subclass's constructor.
@@ -42,6 +43,7 @@ public class LocationService extends IntentService implements ServiceResponse{
 
         GPSHelper gpsHelper = new GPSHelper(this);
         gpsHelper.getMyLocation();
+        isGPSEnabled = gpsHelper.isGPSenabled();
 
         latitude = gpsHelper.getLatitude();
         longitude = gpsHelper.getLongitude();
@@ -59,6 +61,7 @@ public class LocationService extends IntentService implements ServiceResponse{
         Bundle data = new Bundle();
         data.putString("action", "cords");
         data.putDoubleArray("content", new double[]{latitude, longitude});
+        data.putBoolean("gpsEnabled", isGPSEnabled);
         if (bundle != null) {
             Messenger messenger = (Messenger) bundle.get("messenger");
             Message msg = Message.obtain();

