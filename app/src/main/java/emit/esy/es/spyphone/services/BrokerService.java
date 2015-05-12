@@ -40,7 +40,7 @@ public class BrokerService extends Service {
 
         fu.setUpChildRef();
 
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     private String createUsername() {

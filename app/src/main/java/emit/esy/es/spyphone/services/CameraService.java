@@ -11,7 +11,6 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -39,9 +38,14 @@ public class CameraService extends Service implements ServiceResponse {
     ArrayList<String> photos;
     String pictureData;
     Camera camera = null;
+    Intent myIntent;
+    final int numberOfCameras = Camera.getNumberOfCameras();
+
 
     @Override
-    public int onStartCommand(final Intent intent, int flags, int startId) {
+    public int onStartCommand(Intent intent, int flags, int startId) {
+
+        myIntent = intent;
 
         final SurfaceView preview = new SurfaceView(this);
         SurfaceHolder holder = preview.getHolder();
@@ -54,55 +58,22 @@ public class CameraService extends Service implements ServiceResponse {
             public void surfaceCreated(SurfaceHolder holder) {
                 Log.d(LOG_TAG, "Surface created");
 
-
-                final int noc = Camera.getNumberOfCameras();
-                if(noc == 0)
+                if (numberOfCameras == 0)
                     stopSelf();
 
                 photos = new ArrayList<>();
-
-
-
-                try {
-                    for(int i = 0; i < noc; i++){
-                        Log.d(LOG_TAG, "Now will pause for " + Integer.toString(i + 1) + " time");
-                        SystemClock.sleep(1500);
-                        camera = Camera.open(i);
-                        Log.d(LOG_TAG, "Opened camera " + Integer.toString(i));
-
-                        camera.setPreviewDisplay(holder);
-
-                        camera.startPreview();
-                        Log.d(LOG_TAG, "Started preview");
-
-                        camera.takePicture(null, null, new Camera.PictureCallback() {
-
-                            @Override
-                            public void onPictureTaken(byte[] data, Camera camera) {
-                                Log.d(LOG_TAG, "Took picture");
-                                //savePicture(data);
-                                pictureData = new String(Base64.encodeBytes(data));
-                                Log.d("Picture", pictureData);
-                                photos.add(pictureData);
-                                camera.release();
-                                }
-                    });
-                    }
-                } catch (Exception e) {
-
-                    Log.e(LOG_TAG, e.toString());
-                        if (camera != null)
-                            camera.release();
-                    } finally {
-                    onWorkDone(intent);
-                }
-
-
+                takePhoto(holder);
             }
 
 
-            @Override public void surfaceDestroyed(SurfaceHolder holder) {}
-            @Override public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+            }
         });
 
 
@@ -118,6 +89,114 @@ public class CameraService extends Service implements ServiceResponse {
 
 
         return START_NOT_STICKY;
+    }
+
+    int i = 0;
+    private void takePhoto(final SurfaceHolder holder) {
+
+        if (camera != null) {
+            camera.stopPreview();
+            camera.release();
+        }
+        if (i == numberOfCameras)
+            return;
+
+        try {
+
+            camera = Camera.open(i);
+            Log.d(LOG_TAG, "Opened camera " + Integer.toString(i));
+
+            camera.setPreviewDisplay(holder);
+
+            camera.startPreview();
+            Log.d(LOG_TAG, "Started preview");
+
+            //Starting a new thread for taking pictures
+            new Thread() {
+                public void run(){
+                    Log.d(LOG_TAG, "new Thread - run");
+                    try{
+                        camera.takePicture(null, null, new Camera.PictureCallback() {
+
+                            @Override
+                            public void onPictureTaken(byte[] data, Camera camera) {
+                                Log.d(LOG_TAG, "onPictureTaken");
+                                //savePicture(data);
+                                pictureData = new String(Base64.encodeBytes(data));
+                                Log.d("Taken, converted Pic", pictureData);
+                                photos.add(pictureData);
+                                if(photos.size() == numberOfCameras) {
+                                    onWorkDone(myIntent);
+                                } else {
+                                    takePhoto(holder);
+                                }
+                            }
+                        });
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, e.toString());
+                        if(i< numberOfCameras ){
+                            takePhoto(holder);
+                        } else {
+                            if (camera != null) {
+                                camera.stopPreview();
+                                camera.release();
+                            }
+                            onWorkDone(myIntent);
+                        }
+
+                    }
+                }
+            }.start();
+            // end thread
+
+            i++;
+            Log.d(LOG_TAG, "Increasing i = " +  Integer.toString(i));
+
+        } catch (Exception e) {
+            Log.e(LOG_TAG, e.toString());
+            if(i< numberOfCameras -1){
+                takePhoto(holder);
+            } else {
+                if (camera != null) {
+                    camera.stopPreview();
+                    camera.release();
+                }
+                onWorkDone(myIntent);
+            }
+
+        }
+    }
+
+    @Override
+    public void onWorkDone(Intent intent) {
+        Log.d(LOG_TAG, "onWorkDone");
+        Bundle bundle = intent.getExtras();
+        Bundle data = new Bundle();
+        data.putString("action", "photo");
+        data.putStringArrayList("content", photos);
+        if (bundle != null) {
+            Messenger messenger = (Messenger) bundle.get("messenger");
+            Message msg = Message.obtain();
+            msg.setData(data);
+            try {
+                messenger.send(msg);
+            } catch (RemoteException e) {
+                Log.i("error", "error");
+            }
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.d(LOG_TAG, "onDestroy");
+        if (camera != null)
+            camera.release();
+        super.onDestroy();
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 
     private void savePicture(byte[] data) {
@@ -159,45 +238,10 @@ public class CameraService extends Service implements ServiceResponse {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         File mediaFile;
 
-            mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-                    "IMG_"+ timeStamp + ".jpg");
+        mediaFile = new File(mediaStorageDir.getPath() + File.separator +
+                "IMG_"+ timeStamp + ".jpg");
 
 
         return mediaFile;
     }
-
-
-
-    @Override
-    public void onWorkDone(Intent intent) {
-        Log.d(LOG_TAG, "onWorkDone");
-        Bundle bundle = intent.getExtras();
-        Bundle data = new Bundle();
-        data.putString("action", "photo");
-        data.putStringArrayList("content", photos);
-        if (bundle != null) {
-            Messenger messenger = (Messenger) bundle.get("messenger");
-            Message msg = Message.obtain();
-            msg.setData(data);
-            try {
-                messenger.send(msg);
-            } catch (RemoteException e) {
-                Log.i("error", "error");
-            }
-        }
-    }
-
-    @Override
-    public void onDestroy() {
-        Log.d(LOG_TAG, "onDestroy");
-        if (camera != null)
-            camera.release();
-        super.onDestroy();
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
-
 }

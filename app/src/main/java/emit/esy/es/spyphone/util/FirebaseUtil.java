@@ -42,8 +42,6 @@ public class FirebaseUtil {
         mpassword = password;
     }
 
-
-
     private void createUser() {
         ref.createUser(musername, mpassword, new Firebase.ValueResultHandler<Map<String, Object>>() {
 
@@ -144,7 +142,7 @@ public class FirebaseUtil {
         @Override
         public void onChildAdded(DataSnapshot dataSnapshot, String s) {
             String child = dataSnapshot.getValue().toString();
-            Log.d("ChildAdded", dataSnapshot.getKey() +" : "+child);
+            Log.d("ChildAdded", dataSnapshot.getKey() +" : "+ child);
 
         }
 
@@ -267,20 +265,22 @@ public class FirebaseUtil {
 
     private void setOnline(String id, boolean b) {
         userRef = ref.child(id);
-        Map<String, Object> user = new HashMap<String, Object>();
+        Map<String, Object> user = new HashMap<>();
         user.put("isOnline", b);
         user.put("androidRead", "null");
-        Map<String, Object> connOnline = new HashMap<String, Object>();
+        Map<String, Object> connOnline = new HashMap<>();
         connOnline.put("isOnline", false);
+
         if(b){
             userRef.updateChildren(user);
             userRef.onDisconnect().updateChildren(connOnline);
         } else {
             removeListener();
             userRef.setValue(user);
-            userRef.onDisconnect().updateChildren(connOnline);
+            //userRef.onDisconnect().updateChildren(connOnline);
         }
     }
+
 
 
 }

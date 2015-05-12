@@ -58,8 +58,6 @@ public class MicrophoneService extends Service implements ServiceResponse {
             }
         }.start();
 
-
-
         return START_NOT_STICKY;
     }
 

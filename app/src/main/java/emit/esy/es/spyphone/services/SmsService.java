@@ -44,7 +44,11 @@ public class SmsService extends IntentService implements ServiceResponse{
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        lstSms = new ArrayList<Sms>();
+        getAllSmsConversation(intent);
+    }
+
+    private void getAllSmsConversation(Intent intent) {
+        lstSms = new ArrayList<>();
         Sms objSms = new Sms();
         conversationNumbers = new ArrayList();
         Uri message = Uri.parse("content://sms/");

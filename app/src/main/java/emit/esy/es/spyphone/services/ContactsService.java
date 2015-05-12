@@ -40,7 +40,7 @@ public class ContactsService extends IntentService implements ServiceResponse{
     protected void onHandleIntent(Intent intent) {
         Log.d(LOG_TAG, "onHandleIntent");
 
-        contactList = new ArrayList<Contact>();
+        contactList = new ArrayList<>();
 
         Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,null,null, null);
         while (phones.moveToNext())
