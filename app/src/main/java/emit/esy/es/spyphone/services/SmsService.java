@@ -9,6 +9,8 @@ import android.os.Bundle;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
@@ -28,6 +30,7 @@ public class SmsService extends IntentService implements ServiceResponse{
     private static final String LOG_TAG = "SmsService";
     ArrayList<Sms> lstSms;
     private List<String> conversationNumbers;
+    String action, sendStatus;
 
     /**
      * Creates an IntentService.  Invoked by your subclass's constructor.
@@ -44,7 +47,33 @@ public class SmsService extends IntentService implements ServiceResponse{
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        getAllSmsConversation(intent);
+        action = intent.getStringExtra("action");
+        if(action.equals("sms"))
+            getAllSmsConversation(intent);
+        if(action.equals("sendSms"))
+            sendSms(intent);
+
+    }
+
+    private void sendSms(Intent intent) {
+        String phoneNumber = intent.getStringExtra("phoneNum");
+        String smsBody = intent.getStringExtra("smsBody");
+        SmsManager smsManager = SmsManager.getDefault();
+        try {
+            TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+            int simState = tm.getSimState();
+            if (simState != tm.SIM_STATE_ABSENT && simState != tm.SIM_STATE_UNKNOWN){
+                smsManager.sendTextMessage(phoneNumber, null, smsBody, null, null);
+                sendStatus = "sent";
+            } else {
+                sendStatus = "fail";
+            }
+            onWorkDone(intent);
+        } catch (Exception e){
+            sendStatus = "fail";
+            Log.e(LOG_TAG, e.toString());
+            onWorkDone(intent);
+        }
     }
 
     private void getAllSmsConversation(Intent intent) {
@@ -113,8 +142,12 @@ public class SmsService extends IntentService implements ServiceResponse{
         Log.d(LOG_TAG, "onWorkDone");
         Bundle bundle = intent.getExtras();
         Bundle data = new Bundle();
-        data.putString("action", "sms");
-        data.putSerializable("content", conversationList);
+        data.putString("action", action);
+        if(action.equals("sms")) {
+            data.putSerializable("content", conversationList);
+        } else {
+            data.putString("content", sendStatus);
+        }
         if (bundle != null) {
             Messenger messenger = (Messenger) bundle.get("messenger");
             Message msg = Message.obtain();
