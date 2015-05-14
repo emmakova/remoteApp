@@ -32,6 +32,7 @@ public class GPSHelper{
 
 
     public void getMyLocation() {
+        Log.d(LOG_TAG, "getMyLocation");
         List<String> providers = locationManager.getProviders(true);
 
         Location l = null;
