@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.firebase.client.AuthData;
@@ -282,6 +283,7 @@ public class FirebaseUtil {
     private void setOnline(String id, boolean b) {
         userRef = ref.child(id);
         Map<String, Object> user = new HashMap<>();
+        user.put("phoneNumber", getPhoneNumber());
         user.put("isOnline", b);
         user.put("androidRead", "null");
         Map<String, Object> connOnline = new HashMap<>();
@@ -298,6 +300,16 @@ public class FirebaseUtil {
         }
     }
 
+    private String getPhoneNumber() {
+        TelephonyManager tm = (TelephonyManager) mcontext.getSystemService(Context.TELEPHONY_SERVICE);
+        String phNum = tm.getLine1Number();
+        Log.d(LOG_TAG, "Line1Number - " + phNum);
+        if(phNum != null){
+            return phNum;
+        } else {
+            return "No phone number detected";
+        }
+    }
 
 
 }
