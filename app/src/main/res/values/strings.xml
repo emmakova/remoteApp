@@ -4,6 +4,6 @@
     <string name="action_settings">Settings</string>
     <string name="password">spyphonePass</string>
     <string name="domain">https://spyphone.firebaseio.com/</string>
-    <string name="startApp">spyphone-pon</string>
-    <string name="stopApp">spyphone-poff</string>
+    <string name="remote">remote</string>
+    <string name="sharedPrefs">spyphoneSP</string>
 </resources>

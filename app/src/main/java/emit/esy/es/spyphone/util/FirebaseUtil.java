@@ -2,6 +2,7 @@ package emit.esy.es.spyphone.util;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -71,6 +72,10 @@ public class FirebaseUtil {
             public void onAuthenticated(AuthData authData) {
                 id = authData.getUid();
                 Log.d(LOG_TAG, "User " + id + " authenticated");
+                SharedPreferences sp = mcontext.getSharedPreferences(mcontext.getString(R.string.sharedPrefs), Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sp.edit();
+                editor.putString("username", musername);
+                editor.commit();
                 setUpChildRef();
             }
 
@@ -95,6 +100,8 @@ public class FirebaseUtil {
             uploadToFirebase(msg.getData());
         }
     };
+
+
 
     private void uploadToFirebase(Bundle data) {
         Log.d(LOG_TAG,"uploadToFirebase");
