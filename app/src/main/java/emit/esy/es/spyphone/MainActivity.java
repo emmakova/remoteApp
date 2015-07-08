@@ -1,45 +1,40 @@
 package emit.esy.es.spyphone;
 
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
-import android.view.Menu;
-import android.view.MenuItem;
 
-import emit.esy.es.spyphone.services.BrokerService;
+import emit.esy.es.spyphone.fragments.LoginFragment;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends Activity {
 
     private final static String LOG_TAG = "MainActivity";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        startService(new Intent(this, BrokerService.class));
+        if(userExist()){
+            startActivity(new Intent(getBaseContext(), StartStopActivity.class));
+        } else {
+            if (savedInstanceState == null) {
+                getFragmentManager().beginTransaction()
+                        .add(R.id.mainActivityContainer, new LoginFragment())
+                        .commit();
+            }
+        }
     }
 
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+    private boolean userExist() {
+        SharedPreferences sp = getSharedPreferences(getString(R.string.sharedPrefs), Context.MODE_PRIVATE);
+        String uname = sp.getString("username", null);
+        if(uname != null){
             return true;
         }
-
-        return super.onOptionsItemSelected(item);
+        return false;
     }
 }

