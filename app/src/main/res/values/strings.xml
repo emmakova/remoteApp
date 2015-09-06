@@ -3,7 +3,7 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="password">remotePass</string>
-    <string name="domain">https://spyphone.firebaseio.com/</string>
+    <string name="domain">https://findmyphone.firebaseio.com/</string>
     <string name="remote">remote</string>
     <string name="sharedPrefs">remoteSP</string>
     <string name="settings">Settings</string>

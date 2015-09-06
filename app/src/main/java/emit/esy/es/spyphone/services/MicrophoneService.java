@@ -10,8 +10,9 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.util.Base64;
 import android.util.Log;
+
+import com.firebase.client.utilities.Base64;
 
 import java.io.IOException;
 
@@ -114,7 +115,7 @@ public class MicrophoneService extends Service implements ServiceResponse {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        String encoded = Base64.encodeToString(bytes, 0);
+        String encoded = new String(Base64.encodeBytes(bytes));
         return encoded;
     }
 

@@ -42,6 +42,7 @@ public class CallLogService extends IntentService implements ServiceResponse{
     @Override
     protected void onHandleIntent(Intent intent) {
         Log.d(LOG_TAG, "onHandleIntent");
+
         Cursor callLogCursor = getContentResolver().query(CallLog.Calls.CONTENT_URI, null, null, null, null);
 
         int number = callLogCursor.getColumnIndex(CallLog.Calls.NUMBER);

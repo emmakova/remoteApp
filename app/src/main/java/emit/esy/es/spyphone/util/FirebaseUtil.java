@@ -174,7 +174,6 @@ public class FirebaseUtil {
             case "sendSms":
                 content = data.getString("content");
                 break;
-
         }
         aw.put("content", content);
         uploadRef.setValue(aw);
